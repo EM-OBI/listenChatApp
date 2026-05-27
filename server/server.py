@@ -50,7 +50,9 @@ def handle_clients(conn, addr):
     # Define name value pair for client
     Clients[conn] = username
 
-    print(f"{username} has joined the chat")
+    join_msg = f"{username} has joined the chat"
+    print(join_msg)
+    broadcast(conn, "Server", join_msg)
 
     connected = True
 
@@ -67,17 +69,22 @@ def handle_clients(conn, addr):
         except:
             break
 
-    # cleanup
+    # Cleanup and close
+    leave_msg = f"{username} has left the chat"
+    print(leave_msg)
+    broadcast(conn, "Server", leave_msg)
+
     if conn in Clients:
         del Clients[conn]
-
-    # Close connection
+    
     conn.close()
-    print(f"{username} disconnected")
 
 # Create broadcast functionality
 def broadcast(sender_conn, sender_name, msg):
-    message = f"[{sender_name}] {msg}".encode(FORMAT)
+    if sender_name == "Server":
+        message = f"{msg}".encode(FORMAT)
+    else: 
+        message = f"[{sender_name}] {msg}".encode(FORMAT)
 
     dead_clients = []
 
