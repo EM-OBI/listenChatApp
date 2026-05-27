@@ -28,10 +28,13 @@ Clients = {}
 def receive_msg(conn):
     msg_length = conn.recv(HEADER).decode(FORMAT)
 
+    if not msg_length:
+        return None
+
     if msg_length:
         msg_length = int(msg_length.strip())
 
-        return conn.recv(msg_length.decode(FORMAT))
+        return conn.recv(msg_length).decode(FORMAT)
     
     return None
 
@@ -56,27 +59,43 @@ def handle_clients(conn, addr):
             msg = receive_msg(conn)
 
             if msg:
-                print(f"[{username}]{msg}")
+                # print(f"[{username}]{msg}")
                 broadcast(conn, username, msg)
 
                 if msg == DISCONNECT_MESSAGE:
                     connected = False
         except:
             break
-    del Clients[conn]
+
+    # cleanup
+    if conn in Clients:
+        del Clients[conn]
 
     # Close connection
     conn.close()
-
     print(f"{username} disconnected")
 
 # Create broadcast functionality
 def broadcast(sender_conn, sender_name, msg):
     message = f"[{sender_name}] {msg}".encode(FORMAT)
 
+    dead_clients = []
+
     for client in Clients:
         if client != sender_conn:
-            client.send(message)
+            try:
+                client.send(message)
+            except:
+                dead_clients.append(client)
+
+    # remove dead clients safely
+    for dc in dead_clients:
+        if dc in Clients:
+            del Clients[dc]
+        try:
+            dc.close()
+        except:
+            pass
 
 # Start server and listen for new connections
 def start():
